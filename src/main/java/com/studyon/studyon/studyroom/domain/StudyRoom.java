@@ -30,7 +30,7 @@ public class StudyRoom {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "room_type", nullable = false, length = 20)
+    @Column(name = "room_type", nullable = false)
     private RoomType roomType;
 
     @Column(name = "min_capacity", nullable = false)
