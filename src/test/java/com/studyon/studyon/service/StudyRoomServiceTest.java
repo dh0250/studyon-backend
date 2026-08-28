@@ -1,13 +1,13 @@
-package com.studyon.studyon.studyroom.service;
+package com.studyon.studyon.service;
 
-import com.studyon.studyon.reservation.domain.ReservationStatus;
-import com.studyon.studyon.reservation.repository.ReservationRepository;
-import com.studyon.studyon.reservation.repository.ReservationRepository.ReservedTime;
-import com.studyon.studyon.studyroom.domain.StudyRoom;
-import com.studyon.studyon.studyroom.dto.AvailabilityResponse;
-import com.studyon.studyon.studyroom.exception.InvalidDateException;
-import com.studyon.studyon.studyroom.exception.StudyRoomNotFoundException;
-import com.studyon.studyon.studyroom.repository.StudyRoomRepository;
+import com.studyon.studyon.common.exception.InvalidDateException;
+import com.studyon.studyon.common.exception.StudyRoomNotFoundException;
+import com.studyon.studyon.domain.ReservationStatus;
+import com.studyon.studyon.domain.StudyRoom;
+import com.studyon.studyon.dto.AvailabilityResponse;
+import com.studyon.studyon.repository.ReservationRepository;
+import com.studyon.studyon.repository.ReservationRepository.ReservedTime;
+import com.studyon.studyon.repository.StudyRoomRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

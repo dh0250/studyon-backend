@@ -1,4 +1,4 @@
-package com.studyon.studyon.studyroom.exception;
+package com.studyon.studyon.common.exception;
 
 public class StudyRoomNotFoundException extends RuntimeException {
 

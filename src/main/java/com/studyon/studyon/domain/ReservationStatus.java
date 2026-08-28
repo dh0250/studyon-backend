@@ -1,4 +1,4 @@
-package com.studyon.studyon.reservation.domain;
+package com.studyon.studyon.domain;
 
 public enum ReservationStatus {
     CONFIRMED,

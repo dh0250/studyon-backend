@@ -1,6 +1,4 @@
-package com.studyon.studyon.reservation.domain;
-
-import com.studyon.studyon.studyroom.domain.StudyRoom;
+package com.studyon.studyon.domain;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

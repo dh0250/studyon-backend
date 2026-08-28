@@ -1,6 +1,6 @@
-package com.studyon.studyon.studyroom.repository;
+package com.studyon.studyon.repository;
 
-import com.studyon.studyon.studyroom.domain.StudyRoom;
+import com.studyon.studyon.domain.StudyRoom;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

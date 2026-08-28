@@ -1,4 +1,4 @@
-package com.studyon.studyon.studyroom.domain;
+package com.studyon.studyon.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

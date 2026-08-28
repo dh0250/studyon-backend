@@ -1,8 +1,8 @@
-package com.studyon.studyon.studyroom.controller;
+package com.studyon.studyon.controller;
 
-import com.studyon.studyon.studyroom.dto.AvailabilityResponse;
-import com.studyon.studyon.studyroom.dto.StudyRoomResponse;
-import com.studyon.studyon.studyroom.service.StudyRoomService;
+import com.studyon.studyon.dto.AvailabilityResponse;
+import com.studyon.studyon.dto.StudyRoomResponse;
+import com.studyon.studyon.service.StudyRoomService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

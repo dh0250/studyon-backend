@@ -1,7 +1,5 @@
 package com.studyon.studyon.common.exception;
 
-import com.studyon.studyon.studyroom.exception.InvalidDateException;
-import com.studyon.studyon.studyroom.exception.StudyRoomNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;

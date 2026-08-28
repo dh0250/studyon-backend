@@ -1,7 +1,7 @@
-package com.studyon.studyon.reservation.repository;
+package com.studyon.studyon.repository;
 
-import com.studyon.studyon.reservation.domain.Reservation;
-import com.studyon.studyon.reservation.domain.ReservationStatus;
+import com.studyon.studyon.domain.Reservation;
+import com.studyon.studyon.domain.ReservationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
