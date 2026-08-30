@@ -2,13 +2,13 @@ package com.studyon.studyon.service;
 
 import com.studyon.studyon.common.exception.InvalidDateException;
 import com.studyon.studyon.common.exception.StudyRoomNotFoundException;
+import com.studyon.studyon.domain.Reservation;
 import com.studyon.studyon.domain.ReservationStatus;
 import com.studyon.studyon.domain.StudyRoom;
 import com.studyon.studyon.dto.AvailabilityResponse;
 import com.studyon.studyon.dto.AvailabilityResponse.TimeSlotResponse;
 import com.studyon.studyon.dto.StudyRoomResponse;
 import com.studyon.studyon.repository.ReservationRepository;
-import com.studyon.studyon.repository.ReservationRepository.ReservedTime;
 import com.studyon.studyon.repository.StudyRoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,7 +39,7 @@ public class StudyRoomService {
     public AvailabilityResponse getAvailability(Long studyRoomId, LocalDate date) {
         // 오늘부터 3개월 이내의 날짜만 예약할 수 있다.
         LocalDate today = LocalDate.now();
-        if (date.isBefore(today) || date.isAfter(today.plusMonths(3).minusDays(1))) {
+        if (date.isBefore(today) || date.isAfter(today.plusMonths(3))) {
             throw new InvalidDateException();
         }
 
@@ -49,12 +49,13 @@ public class StudyRoomService {
         LocalDateTime dayStart = date.atStartOfDay();
         LocalDateTime dayEnd = date.plusDays(1).atStartOfDay();
         // 선택한 날짜와 겹치는 확정 예약 시간을 조회한다.
-        List<ReservedTime> reservedTimes = reservationRepository.findOverlapping(
-                studyRoomId,
-                ReservationStatus.CONFIRMED,
-                dayStart,
-                dayEnd
-        );
+        List<ReservationRepository.ReservedTime> reservedTimes = reservationRepository
+                .findByStudyRoomIdAndStatusAndStartAtLessThanAndEndAtGreaterThan(
+                        studyRoomId,
+                        ReservationStatus.CONFIRMED,
+                        dayEnd,
+                        dayStart
+                );
         LocalDateTime now = LocalDateTime.now();
 
         // 운영시간을 1시간 단위로 나누고, 각 시간의 예약 가능 여부를 확인한다.
@@ -72,7 +73,7 @@ public class StudyRoomService {
     private TimeSlotResponse toTimeSlot(
             LocalDate date,
             LocalTime startTime,
-            List<ReservedTime> reservedTimes,
+            List<ReservationRepository.ReservedTime> reservedTimes,
             LocalDateTime now
     ) {
         // 날짜와 시간을 결합하여 검사할 1시간짜리 예약 구간을 만든다.

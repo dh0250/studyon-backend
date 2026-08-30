@@ -6,7 +6,6 @@ import com.studyon.studyon.domain.ReservationStatus;
 import com.studyon.studyon.domain.StudyRoom;
 import com.studyon.studyon.dto.AvailabilityResponse;
 import com.studyon.studyon.repository.ReservationRepository;
-import com.studyon.studyon.repository.ReservationRepository.ReservedTime;
 import com.studyon.studyon.repository.StudyRoomRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +38,7 @@ class StudyRoomServiceTest {
     private StudyRoom studyRoom;
 
     @Mock
-    private ReservedTime reservedTime;
+    private ReservationRepository.ReservedTime reservedTime;
 
     @InjectMocks
     private StudyRoomService studyRoomService;
@@ -52,7 +51,7 @@ class StudyRoomServiceTest {
         given(studyRoom.getCloseTime()).willReturn(LocalTime.of(23, 0));
         given(reservedTime.getStartAt()).willReturn(date.atTime(7, 0));
         given(reservedTime.getEndAt()).willReturn(date.atTime(8, 0));
-        given(reservationRepository.findOverlapping(
+        given(reservationRepository.findByStudyRoomIdAndStatusAndStartAtLessThanAndEndAtGreaterThan(
                 eq(1L),
                 eq(ReservationStatus.CONFIRMED),
                 any(LocalDateTime.class),
