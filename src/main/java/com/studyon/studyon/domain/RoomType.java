@@ -1,4 +1,4 @@
-package com.studyon.studyon.studyroom.domain;
+package com.studyon.studyon.domain;
 
 public enum RoomType {
     ROOM_4,

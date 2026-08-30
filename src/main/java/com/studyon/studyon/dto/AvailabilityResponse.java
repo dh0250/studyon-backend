@@ -1,4 +1,4 @@
-package com.studyon.studyon.studyroom.dto;
+package com.studyon.studyon.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 

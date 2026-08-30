@@ -245,9 +245,12 @@ studyon-backend
 ├── src
 │   ├── main
 │   │   ├── java/com/studyon/studyon
-│   │   │   ├── common
-│   │   │   ├── reservation
-│   │   │   └── studyroom
+│   │   │   ├── common/exception
+│   │   │   ├── controller
+│   │   │   ├── domain
+│   │   │   ├── dto
+│   │   │   ├── repository
+│   │   │   └── service
 │   │   └── resources
 │   │       └── application.yml
 │   └── test

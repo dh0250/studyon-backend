@@ -1,7 +1,7 @@
-package com.studyon.studyon.studyroom.dto;
+package com.studyon.studyon.dto;
 
-import com.studyon.studyon.studyroom.domain.RoomType;
-import com.studyon.studyon.studyroom.domain.StudyRoom;
+import com.studyon.studyon.domain.RoomType;
+import com.studyon.studyon.domain.StudyRoom;
 
 import java.time.LocalTime;
 

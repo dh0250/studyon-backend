@@ -1,6 +1,5 @@
-package com.studyon.studyon.reservation.domain;
-
-import com.studyon.studyon.studyroom.domain.StudyRoom;
+package com.studyon.studyon.domain;
+import com.studyon.studyon.common.exception.ReservationConflictException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -61,4 +60,34 @@ public class Reservation {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public static Reservation create(
+            StudyRoom studyRoom,
+            String guestName,
+            String guestEmail,
+            String guestPhone,
+            LocalDateTime startAt,
+            LocalDateTime endAt,
+            String purpose
+    ) {
+        Reservation reservation = new Reservation();
+        reservation.studyRoom = studyRoom;
+        reservation.guestName = guestName;
+        reservation.guestEmail = guestEmail;
+        reservation.guestPhone = guestPhone;
+        reservation.startAt = startAt;
+        reservation.endAt = endAt;
+        reservation.purpose = purpose;
+        reservation.status = ReservationStatus.CONFIRMED;
+        return reservation;
+    }
+
+    public void cancel() {
+        if (status == ReservationStatus.CANCELED) {
+            return;
+        }
+
+        status = ReservationStatus.CANCELED;
+        canceledAt = LocalDateTime.now();
+    }
 }
