@@ -1,11 +1,15 @@
 package com.studyon.studyon.service;
 
 import com.studyon.studyon.common.exception.ReservationConflictException;
+import com.studyon.studyon.common.exception.ReservationVerificationException;
 import com.studyon.studyon.domain.Reservation;
 import com.studyon.studyon.domain.ReservationStatus;
 import com.studyon.studyon.domain.StudyRoom;
+import com.studyon.studyon.dto.ReservationCancelRequest;
+import com.studyon.studyon.dto.ReservationCancelResponse;
 import com.studyon.studyon.dto.ReservationCreateRequest;
 import com.studyon.studyon.dto.ReservationCreateResponse;
+import com.studyon.studyon.dto.ReservationSearchResponse;
 import com.studyon.studyon.repository.ReservationRepository;
 import com.studyon.studyon.repository.StudyRoomRepository;
 import org.junit.jupiter.api.Test;
@@ -16,11 +20,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class ReservationServiceTest {
@@ -33,6 +39,9 @@ class ReservationServiceTest {
 
     @Mock
     private StudyRoom studyRoom;
+
+    @Mock
+    private Reservation reservation;
 
     @InjectMocks
     private ReservationService reservationService;
@@ -80,6 +89,62 @@ class ReservationServiceTest {
 
         assertThatThrownBy(() -> reservationService.createReservation(request))
                 .isInstanceOf(ReservationConflictException.class);
+    }
+
+    @Test
+    void searchesReservationsWithNormalizedGuestInformation() {
+        LocalDateTime createdAt = LocalDateTime.of(2026, 8, 30, 10, 0);
+        given(reservationRepository.findByGuestEmailAndGuestPhoneOrderByCreatedAtDesc(
+                "guest@example.com", "01012345678"
+        )).willReturn(List.of(reservation));
+        given(reservation.getId()).willReturn(1L);
+        given(reservation.getStudyRoom()).willReturn(studyRoom);
+        given(studyRoom.getId()).willReturn(2L);
+        given(studyRoom.getName()).willReturn("4인 1호실");
+        given(reservation.getStatus()).willReturn(ReservationStatus.CONFIRMED);
+        given(reservation.getCreatedAt()).willReturn(createdAt);
+
+        List<ReservationSearchResponse> responses = reservationService.searchReservations(
+                " GUEST@example.com ", "010-1234-5678"
+        );
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.getFirst().reservationId()).isEqualTo(1L);
+        assertThat(responses.getFirst().studyRoomName()).isEqualTo("4인 1호실");
+        assertThat(responses.getFirst().createdAt()).isEqualTo(createdAt);
+    }
+
+    @Test
+    void cancelsReservationWhenGuestInformationMatches() {
+        LocalDateTime canceledAt = LocalDateTime.of(2026, 8, 30, 11, 0);
+        ReservationCancelRequest request = new ReservationCancelRequest(
+                " GUEST@example.com ", "010-1234-5678"
+        );
+        given(reservationRepository.findById(1L)).willReturn(Optional.of(reservation));
+        given(reservation.getGuestEmail()).willReturn("guest@example.com");
+        given(reservation.getGuestPhone()).willReturn("01012345678");
+        given(reservation.getId()).willReturn(1L);
+        given(reservation.getStatus()).willReturn(ReservationStatus.CANCELED);
+        given(reservation.getCanceledAt()).willReturn(canceledAt);
+
+        ReservationCancelResponse response = reservationService.cancelReservation(1L, request);
+
+        verify(reservation).cancel();
+        assertThat(response.reservationId()).isEqualTo(1L);
+        assertThat(response.status()).isEqualTo(ReservationStatus.CANCELED);
+        assertThat(response.canceledAt()).isEqualTo(canceledAt);
+    }
+
+    @Test
+    void rejectsCancellationWhenGuestInformationDoesNotMatch() {
+        ReservationCancelRequest request = new ReservationCancelRequest(
+                "other@example.com", "010-9999-9999"
+        );
+        given(reservationRepository.findById(1L)).willReturn(Optional.of(reservation));
+        given(reservation.getGuestEmail()).willReturn("guest@example.com");
+
+        assertThatThrownBy(() -> reservationService.cancelReservation(1L, request))
+                .isInstanceOf(ReservationVerificationException.class);
     }
 
     private ReservationCreateRequest request(LocalDateTime startAt, LocalDateTime endAt) {
