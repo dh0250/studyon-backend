@@ -9,11 +9,13 @@ import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@Validated
 @RequestMapping("/api/v1/reservations")
 @RequiredArgsConstructor
 public class ReservationController {
@@ -22,8 +24,8 @@ public class ReservationController {
 
     @GetMapping
     public ResponseEntity<List<ReservationSearchResponse>> searchReservations(
-            @Valid @RequestParam @NotBlank @Email String guestEmail,
-            @Valid @RequestParam @NotBlank @Pattern(regexp = "^[0-9-]+$") String guestPhone
+            @RequestParam @NotBlank @Email String guestEmail,
+            @RequestParam @NotBlank @Pattern(regexp = "^[0-9-]+$") String guestPhone
     ) {
         return ResponseEntity.ok(reservationService.searchReservations(guestEmail, guestPhone));
     }
