@@ -1,6 +1,5 @@
 package com.studyon.studyon.controller;
 
-import com.studyon.studyon.domain.Reservation;
 import com.studyon.studyon.dto.*;
 import com.studyon.studyon.service.ReservationService;
 import jakarta.validation.Valid;
