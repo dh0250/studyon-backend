@@ -216,14 +216,14 @@ AND existing.status = 'CONFIRMED'
 | GET | `/api/v1/study-rooms` | 운영 중인 스터디룸 목록 조회 |
 | GET | `/api/v1/study-rooms/{id}/availability?date=YYYY-MM-DD` | 날짜별 예약 가능 시간 조회 |
 | POST | `/api/v1/reservations` | 비회원 예약 생성 |
-| POST | `/api/v1/reservations/search` | 이메일·전화번호로 예약 목록 조회 |
+| GET | `/api/v1/reservations?guestEmail={email}&guestPhone={phone}` | 이메일·전화번호로 예약 목록 조회 |
 | PATCH | `/api/v1/reservations/{reservationId}/cancel` | 예약자 정보 재확인 후 예약 취소 |
 
 **요청·응답 원칙**
 
-- 개인정보가 URL과 서버 로그에 남지 않도록 비회원 예약 조회는 GET 쿼리스트링 대신 POST body를 사용합니다.
+- 비회원 예약 조회는 이메일·전화번호를 쿼리 파라미터로 전달합니다.
 - 예약 취소 요청에도 이메일·전화번호를 받아 예약자 정보를 다시 확인합니다.
-- 예약 생성 성공은 `201 Created`, 조회 성공은 `200 OK`, 취소 성공은 `200 OK` 또는 `204 No Content`로 통일합니다.
+- 예약 생성 성공은 `201 Created`, 조회·취소 성공은 `200 OK`를 반환합니다.
 - 예약 생성 응답에는 `reservationId`를 포함합니다.
 
 **오류 코드**
