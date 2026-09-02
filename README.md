@@ -34,7 +34,8 @@
 
 **Frontend (연동)**
 
-<img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white"/>
+<img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=white"/>
+<img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white"/>
 <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white"/>
 
 </td>
@@ -87,7 +88,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    U["사용자 브라우저"] -->|HTTPS| V["Vercel<br>Next.js"]
+    U["사용자 브라우저"] -->|HTTPS| V["Vercel<br>React (Vite)"]
     V -->|REST API HTTPS| N["Nginx<br>AWS EC2"]
     N --> B["Docker<br>Spring Boot"]
     B -->|JDBC TLS| R["AWS RDS<br>PostgreSQL"]
@@ -197,7 +198,7 @@ sequenceDiagram
 - 대상 `study_rooms` 행을 JPA `PESSIMISTIC_WRITE`로 조회합니다.
 - 락을 얻은 뒤 겹치는 확정 예약을 다시 조회합니다.
 - 충돌이 없을 때만 저장하고, 충돌하면 `409 Conflict`를 반환합니다.
-- 동시성 테스트는 같은 요청을 다수 전송해 성공 1건, 충돌 N-1건인지 확인합니다.
+- 동시성 테스트는 같은 스터디룸·시간대 요청을 다수 전송해 성공 1건, 충돌 N-1건인지 확인합니다.
 
 **중복 예약 판정 조건**
 
@@ -214,7 +215,7 @@ AND existing.status = 'CONFIRMED'
 | Method | 경로 | 설명 |
 |---|---|---|
 | GET | `/api/v1/study-rooms` | 운영 중인 스터디룸 목록 조회 |
-| GET | `/api/v1/study-rooms/{id}/availability?date=YYYY-MM-DD` | 날짜별 예약 가능 시간 조회 |
+| GET | `/api/v1/study-rooms/{studyRoomId}/availability?date=YYYY-MM-DD` | 날짜별 예약 가능 시간 조회 |
 | POST | `/api/v1/reservations` | 비회원 예약 생성 |
 | GET | `/api/v1/reservations?guestEmail={email}&guestPhone={phone}` | 이메일·전화번호로 예약 목록 조회 |
 | PATCH | `/api/v1/reservations/{reservationId}/cancel` | 예약자 정보 재확인 후 예약 취소 |
