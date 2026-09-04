@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
@@ -130,7 +131,10 @@ class ReservationServiceTest {
         given(reservation.getGuestEmail()).willReturn("guest@example.com");
         given(reservation.getGuestPhone()).willReturn("01012345678");
         given(reservation.getId()).willReturn(1L);
-        given(reservation.getStatus()).willReturn(ReservationStatus.CANCELED);
+        given(reservation.getStatus()).willReturn(
+                ReservationStatus.CONFIRMED,
+                ReservationStatus.CANCELED);
+        given(reservation.getStartAt()).willReturn(LocalDate.now().plusDays(1).atTime(10, 0));
         given(reservation.getCanceledAt()).willReturn(canceledAt);
 
         ReservationCancelResponse response = reservationService.cancelReservation(1L, request);
