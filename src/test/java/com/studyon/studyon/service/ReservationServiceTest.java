@@ -55,7 +55,8 @@ class ReservationServiceTest {
         LocalDateTime endAt = startAt.plusHours(2);
         ReservationCreateRequest request = request(startAt, endAt);
 
-        given(studyRoomRepository.findForUpdateByIdAndActiveTrue(1L)).willReturn(Optional.of(studyRoom));
+        //given(studyRoomRepository.findForUpdateByIdAndActiveTrue(1L)).willReturn(Optional.of(studyRoom));
+        given(studyRoomRepository.findForOptimisticLockByIdAndActiveTrue(1L)).willReturn(Optional.of(studyRoom));
         given(studyRoom.getId()).willReturn(1L);
         given(studyRoom.getName()).willReturn("4인 1호실");
         given(studyRoom.getOpenTime()).willReturn(LocalTime.of(6, 0));
@@ -83,7 +84,8 @@ class ReservationServiceTest {
         LocalDateTime endAt = startAt.plusHours(2);
         ReservationCreateRequest request = request(startAt, endAt);
 
-        given(studyRoomRepository.findForUpdateByIdAndActiveTrue(1L)).willReturn(Optional.of(studyRoom));
+        //given(studyRoomRepository.findForUpdateByIdAndActiveTrue(1L)).willReturn(Optional.of(studyRoom));
+        given(studyRoomRepository.findForOptimisticLockByIdAndActiveTrue(1L)).willReturn(Optional.of(studyRoom));
         given(studyRoom.getId()).willReturn(1L);
         given(studyRoom.getOpenTime()).willReturn(LocalTime.of(6, 0));
         given(studyRoom.getCloseTime()).willReturn(LocalTime.of(23, 0));

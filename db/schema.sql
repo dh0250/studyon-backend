@@ -70,3 +70,6 @@ CREATE INDEX IF NOT EXISTS idx_reservations_guest_lookup
 
 COMMENT ON INDEX idx_reservations_guest_lookup IS
     '이메일과 전화번호로 비회원 예약 내역을 최신 순으로 조회한다.';
+
+ALTER TABLE study_rooms
+    ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 0;

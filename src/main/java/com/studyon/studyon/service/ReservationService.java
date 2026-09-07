@@ -47,9 +47,12 @@ public class ReservationService {
     ) {
         validateRequest(request);
 
-        StudyRoom studyRoom = studyRoomRepository.findForUpdateByIdAndActiveTrue(request.studyRoomId())
-                .orElseThrow(StudyRoomNotFoundException::new);
+        /*StudyRoom studyRoom = studyRoomRepository.findForUpdateByIdAndActiveTrue(request.studyRoomId())
+                .orElseThrow(StudyRoomNotFoundException::new);*/
 
+        StudyRoom studyRoom = studyRoomRepository.findForOptimisticLockByIdAndActiveTrue(request.studyRoomId())
+                .orElseThrow(StudyRoomNotFoundException::new);
+        
         validateOperatingHours(request, studyRoom);
 
         boolean overlapping = reservationRepository
@@ -95,14 +98,6 @@ public class ReservationService {
         if (!reservation.getGuestEmail().equals(normalizedEmail)
                 || !reservation.getGuestPhone().equals(normalizedPhone)) {
             throw new ReservationVerificationException();
-        }
-
-        if (reservation.getStatus() == ReservationStatus.CANCELED) {
-            return ReservationCancelResponse.from(reservation.getId(), reservation.getStatus(), reservation.getCanceledAt());
-        }
-
-        if (reservation.getStartAt().minusHours(1).isBefore(LocalDateTime.now())) {
-            throw new ReservationCancellationNotAllowedException();
         }
 
         reservation.cancel();

@@ -16,6 +16,9 @@ public interface StudyRoomRepository extends JpaRepository<StudyRoom, Long> {
 
     Optional<StudyRoom> findByIdAndActiveTrue(Long id);
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    Optional<StudyRoom> findForUpdateByIdAndActiveTrue(Long id);
+    /*@Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<StudyRoom> findForUpdateByIdAndActiveTrue(Long id);*/
+
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    Optional<StudyRoom> findForOptimisticLockByIdAndActiveTrue(Long id);
 }

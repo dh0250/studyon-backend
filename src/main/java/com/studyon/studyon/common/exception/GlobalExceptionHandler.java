@@ -3,6 +3,7 @@ package com.studyon.studyon.common.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -37,6 +38,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReservationVerificationException.class)
     public ResponseEntity<ProblemDetail> handleReservationVerification(ReservationVerificationException exception) {
         return createProblem(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ProblemDetail> handleOptimisticLock(
+            ObjectOptimisticLockingFailureException exception
+    ) {
+        return createProblem(
+                HttpStatus.CONFLICT,
+                "다른 요청이 먼저 예약했습니다. 다시 시도해주세요."
+        );
     }
 
     private ResponseEntity<ProblemDetail> createProblem(HttpStatus status, String detail) {
