@@ -1,5 +1,6 @@
 package com.studyon.studyon.integration;
 
+import com.studyon.studyon.domain.Reservation;
 import com.studyon.studyon.domain.StudyRoom;
 import com.studyon.studyon.dto.ReservationCancelRequest;
 import com.studyon.studyon.dto.ReservationCreateRequest;
@@ -19,6 +20,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.concurrent.TimeUnit;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -116,6 +118,36 @@ class ReservationApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.reservationId").value(reservationId))
                 .andExpect(jsonPath("$.status").value("CANCELED"));
+    }
+
+    @Test
+    @DisplayName("취소 마감 시간 위반 시 400 Bad Request를 반환한다")
+    void rejectsCancelDeadlineViolation() throws Exception {
+        StudyRoom studyRoom = activeStudyRoom();
+
+        Reservation reservation = reservationRepository.saveAndFlush(
+                Reservation.create(
+                        studyRoom,
+                        "API 테스트 사용자",
+                        "api-integration-test@example.com",
+                        "01012345678",
+                        LocalDateTime.now().plusMinutes(30),
+                        LocalDateTime.now().plusMinutes(90),
+                        "API 통합 테스트"
+                )
+        );
+
+        ReservationCancelRequest request = new ReservationCancelRequest(
+                "api-integration-test@example.com",
+                "01012345678"
+        );
+
+        mockMvc.perform(patch("/api/v1/reservations/{reservationId}/cancel", reservation.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail")
+                        .value("예약 시작 1시간 전까지만 취소할 수 있습니다."));
     }
 
     private void createReservation(StudyRoom studyRoom) throws Exception {
