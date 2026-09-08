@@ -1,0 +1,30 @@
+name: Deploy backend
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: studyon-backend-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, linux, x64]
+
+    steps:
+      - name: Update and restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$HOME/studyon-backend"
+          git pull --ff-only origin dev
+          docker build -t studyon-backend:latest .
+          docker rm -f studyon-backend || true
+          docker run -d \
+            --name studyon-backend \
+            --restart unless-stopped \
+            --env-file .env \
+            -p 127.0.0.1:8080:8080 \
+            studyon-backend:latest
