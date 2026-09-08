@@ -2,7 +2,7 @@ name: Deploy backend
 
 on:
   push:
-    branches: [dev]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -19,7 +19,8 @@ jobs:
         run: |
           set -euo pipefail
           cd "$HOME/studyon-backend"
-          git pull --ff-only origin dev
+          git switch main
+          git pull --ff-only origin main
           docker build -t studyon-backend:latest .
           docker rm -f studyon-backend || true
           docker run -d \
