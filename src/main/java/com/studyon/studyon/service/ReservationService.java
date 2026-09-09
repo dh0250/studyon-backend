@@ -97,6 +97,14 @@ public class ReservationService {
             throw new ReservationVerificationException();
         }
 
+        if (reservation.getStatus() == ReservationStatus.CANCELED) {
+            return ReservationCancelResponse.from(reservation.getId(), reservation.getStatus(), reservation.getCanceledAt());
+        }
+
+        if (reservation.getStartAt().minusHours(1).isBefore(LocalDateTime.now())) {
+            throw new ReservationCancellationNotAllowedException();
+        }
+
         reservation.cancel();
 
         return ReservationCancelResponse.from(reservation.getId(), reservation.getStatus(), reservation.getCanceledAt());

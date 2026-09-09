@@ -39,6 +39,13 @@ public class GlobalExceptionHandler {
         return createProblem(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
+    @ExceptionHandler(ReservationCancellationNotAllowedException.class)
+    public ResponseEntity<ProblemDetail> handleReservationCancellationNotAllowed(
+            ReservationCancellationNotAllowedException exception
+    ) {
+        return createProblem(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+
     private ResponseEntity<ProblemDetail> createProblem(HttpStatus status, String detail) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
         return ResponseEntity.status(status).body(problem);

@@ -1,4 +1,4 @@
-# 📐 StudyOn Backend
+#   👩‍💻 StudyOn Backend
 
 스터디룸 예약 서비스의 백엔드 서버입니다. 비회원이 이름·이메일·전화번호를 입력해 빠르게 예약하고, 동시성 제어를 통해 중복 예약 없이 안전하게 처리하는 것을 목표로 합니다.
 
@@ -16,6 +16,7 @@
 <img src="https://img.shields.io/badge/Spring%20Boot-4.1.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white"/>
 <img src="https://img.shields.io/badge/Spring%20Data%20JPA-6DB33F?style=for-the-badge&logo=spring&logoColor=white"/>
 <img src="https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white"/>
+<img src="https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black"/>
 
 **Database**
 
@@ -34,7 +35,8 @@
 
 **Frontend (연동)**
 
-<img src="https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white"/>
+<img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=white"/>
+<img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white"/>
 <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white"/>
 
 </td>
@@ -87,7 +89,7 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    U["사용자 브라우저"] -->|HTTPS| V["Vercel<br>Next.js"]
+    U["사용자 브라우저"] -->|HTTPS| V["Vercel<br>React (Vite)"]
     V -->|REST API HTTPS| N["Nginx<br>AWS EC2"]
     N --> B["Docker<br>Spring Boot"]
     B -->|JDBC TLS| R["AWS RDS<br>PostgreSQL"]
@@ -173,7 +175,7 @@ erDiagram
 
 ## ⚙️ 동시성 설계
 
-같은 스터디룸·시간대에 대한 동시 예약 요청이 들어와도 하나만 성공하도록, 비관적 락(`PESSIMISTIC_WRITE`) 기반으로 처리합니다.
+같은 스터디룸·시간대에 대한 동시 예약 요청이 들어와도 하나만 성공하도록, 비관적 락(`PESSIMISTIC_WRITE`) 기반으로 처리합니다. 낙관적 락은 별도 브랜치에서 성능 비교를 위해 실험했습니다.
 
 ```mermaid
 sequenceDiagram
@@ -195,9 +197,10 @@ sequenceDiagram
 
 - 예약 생성 서비스 메서드 전체에 `@Transactional`을 적용합니다.
 - 대상 `study_rooms` 행을 JPA `PESSIMISTIC_WRITE`로 조회합니다.
-- 락을 얻은 뒤 겹치는 확정 예약을 다시 조회합니다.
-- 충돌이 없을 때만 저장하고, 충돌하면 `409 Conflict`를 반환합니다.
-- 동시성 테스트는 같은 요청을 다수 전송해 성공 1건, 충돌 N-1건인지 확인합니다.
+- 락을 얻은 뒤 겹치는 확정 예약을 다시 조회하고, 충돌하면 `409 Conflict`를 반환합니다.
+- PostgreSQL 배타 제약(`EXCLUDE USING gist`)도 적용해 DB 레벨에서 겹치는 확정 예약을 최종 차단합니다.
+- 동시성 테스트는 락 방식의 효과만 비교할 수 있도록 배타 제약을 적용하지 않은 별도 테스트 DB에서 실행했습니다.
+- 동시성 테스트는 같은 스터디룸·시간대 요청을 다수 전송해 성공 1건, 충돌 N-1건인지 확인합니다.
 
 **중복 예약 판정 조건**
 
@@ -209,30 +212,182 @@ AND existing.status = 'CONFIRMED'
 
 <br>
 
-## 🔌 API 설계
+## 🔌 API 명세
 
 | Method | 경로 | 설명 |
 |---|---|---|
 | GET | `/api/v1/study-rooms` | 운영 중인 스터디룸 목록 조회 |
-| GET | `/api/v1/study-rooms/{id}/availability?date=YYYY-MM-DD` | 날짜별 예약 가능 시간 조회 |
+| GET | `/api/v1/study-rooms/{studyRoomId}/availability?date=YYYY-MM-DD` | 날짜별 예약 가능 시간 조회 |
 | POST | `/api/v1/reservations` | 비회원 예약 생성 |
-| POST | `/api/v1/reservations/search` | 이메일·전화번호로 예약 목록 조회 |
-| PATCH | `/api/v1/reservations/{reservationId}/cancel` | 예약자 정보 재확인 후 예약 취소 |
+| GET | `/api/v1/reservations?guestEmail={email}&guestPhone={phone}` | 이메일·전화번호로 예약 목록 조회 |
+| PATCH | `/api/v1/reservations/{reservationId}/cancel` | 예약자 정보 확인 후 예약 취소 |
 
-**요청·응답 원칙**
+### 공통 규칙
 
-- 개인정보가 URL과 서버 로그에 남지 않도록 비회원 예약 조회는 GET 쿼리스트링 대신 POST body를 사용합니다.
-- 예약 취소 요청에도 이메일·전화번호를 받아 예약자 정보를 다시 확인합니다.
-- 예약 생성 성공은 `201 Created`, 조회 성공은 `200 OK`, 취소 성공은 `200 OK` 또는 `204 No Content`로 통일합니다.
-- 예약 생성 응답에는 `reservationId`를 포함합니다.
+- 모든 성공 응답은 DTO 또는 DTO 목록을 바로 반환합니다.
+- 오류 응답은 Spring의 `ProblemDetail` 형식이며, 주요 메시지는 `detail` 필드에 반환됩니다.
+- 비회원 예약 조회는 이메일·전화번호를 쿼리 파라미터로 전달합니다. 이메일은 앞뒤 공백을 제거하고 소문자로, 전화번호는 숫자만 남겨 조회합니다.
+- 예약 시간은 `YYYY-MM-DDTHH:mm:ss`, 날짜는 `YYYY-MM-DD` 형식입니다.
 
-**오류 코드**
+### 오류 응답
+
+```json
+{
+  "type": "about:blank",
+  "status": 409,
+  "detail": "이미 예약된 시간대입니다. 다른 시간을 선택해주세요."
+}
+```
 
 | HTTP 상태 | 사용 시점 |
 |---|---|
-| 400 Bad Request | 운영시간, 이용시간, 연락처 등 입력값이 정책을 위반함 |
+| 400 Bad Request | DTO 검증, 날짜·운영시간·이용시간 정책 위반 또는 예약자 정보 불일치 |
 | 404 Not Found | 스터디룸 또는 예약을 찾을 수 없음 |
-| 409 Conflict | 예약 시간 중복 또는 이미 취소된 예약 |
+| 409 Conflict | 예약 시간 중복 |
+
+### 상세 명세
+
+#### 스터디룸 목록 조회
+
+`GET /api/v1/study-rooms`
+
+운영 중인 `active=true` 스터디룸 목록을 반환합니다. 요청 body와 query parameter는 없습니다.
+
+```json
+[
+  {
+    "id": 1,
+    "name": "4인 1호실",
+    "roomType": "ROOM_4",
+    "minCapacity": 1,
+    "maxCapacity": 4,
+    "openTime": "06:00:00",
+    "closeTime": "23:00:00"
+  }
+]
+```
+
+#### 예약 가능 시간 조회
+
+`GET /api/v1/study-rooms/{studyRoomId}/availability?date=YYYY-MM-DD`
+
+| 이름 | 위치 | 타입 | 필수 | 설명 |
+|---|---|---|---|---|
+| `studyRoomId` | Path | Long | Y | 스터디룸 ID |
+| `date` | Query | LocalDate | Y | 오늘부터 3개월 이내의 조회 날짜 |
+
+현재보다 이전 시간의 슬롯 또는 확정 예약과 겹치는 슬롯은 `available=false`로 반환합니다.
+
+```json
+{
+  "studyRoomId": 1,
+  "date": "2026-09-08",
+  "slots": [
+    { "startTime": "06:00", "endTime": "07:00", "available": true },
+    { "startTime": "07:00", "endTime": "08:00", "available": false }
+  ]
+}
+```
+
+#### 예약 생성
+
+`POST /api/v1/reservations`
+
+```json
+{
+  "studyRoomId": 1,
+  "guestName": "홍길동",
+  "guestEmail": "guest@example.com",
+  "guestPhone": "010-1234-5678",
+  "startAt": "2026-09-08T10:00:00",
+  "endAt": "2026-09-08T12:00:00",
+  "purpose": "팀 프로젝트 회의"
+}
+```
+
+| 필드 | 타입 | 필수 | 검증 |
+|---|---|---|---|
+| `studyRoomId` | Long | Y | 양수이며 운영 중인 스터디룸 |
+| `guestName` | String | Y | 공백 제외, 최대 50자 |
+| `guestEmail` | String | Y | 이메일 형식, 최대 255자 |
+| `guestPhone` | String | Y | 숫자와 하이픈만 허용, 숫자 기준 10~11자리 |
+| `startAt`, `endAt` | LocalDateTime | Y | 같은 날짜의 정각, 1~4시간, 운영시간 안 |
+| `purpose` | String | Y | 공백 제외 1~50자 |
+
+- 시작 시각은 현재 이후이고, 예약 날짜는 오늘부터 3개월 이내여야 합니다.
+- `CONFIRMED` 상태 예약과 시간이 겹치면 생성할 수 없습니다.
+- 중복 판정: `existing.startAt < requested.endAt AND existing.endAt > requested.startAt`
+
+**응답: `201 Created`**
+
+```json
+{
+  "reservationId": 101,
+  "studyRoomId": 1,
+  "studyRoomName": "4인 1호실",
+  "guestName": "홍길동",
+  "guestEmail": "guest@example.com",
+  "guestPhone": "01012345678",
+  "startAt": "2026-09-08T10:00:00",
+  "endAt": "2026-09-08T12:00:00",
+  "purpose": "팀 프로젝트 회의",
+  "status": "CONFIRMED"
+}
+```
+
+#### 예약 목록 조회
+
+`GET /api/v1/reservations?guestEmail={email}&guestPhone={phone}`
+
+| 이름 | 위치 | 타입 | 필수 | 설명 |
+|---|---|---|---|---|
+| `guestEmail` | Query | String | Y | 이메일 형식 |
+| `guestPhone` | Query | String | Y | 숫자와 하이픈만 허용 |
+
+이메일과 전화번호가 모두 일치하는 예약을 생성 시각 내림차순으로 반환하며, 일치하는 예약이 없으면 빈 배열을 반환합니다.
+
+```json
+[
+  {
+    "reservationId": 101,
+    "studyRoomId": 1,
+    "studyRoomName": "4인 1호실",
+    "startAt": "2026-09-08T10:00:00",
+    "endAt": "2026-09-08T12:00:00",
+    "purpose": "팀 프로젝트 회의",
+    "status": "CONFIRMED",
+    "canceledAt": null,
+    "createdAt": "2026-09-07T14:00:00"
+  }
+]
+```
+
+#### 예약 취소
+
+`PATCH /api/v1/reservations/{reservationId}/cancel`
+
+```json
+{
+  "guestEmail": "guest@example.com",
+  "guestPhone": "010-1234-5678"
+}
+```
+
+| 이름 | 위치 | 타입 | 필수 | 설명 |
+|---|---|---|---|---|
+| `reservationId` | Path | Long | Y | 예약 ID |
+| `guestEmail` | Body | String | Y | 예약자 확인용 이메일 |
+| `guestPhone` | Body | String | Y | 예약자 확인용 전화번호 |
+
+```json
+{
+  "reservationId": 101,
+  "status": "CANCELED",
+  "canceledAt": "2026-09-07T14:30:00"
+}
+```
+
+예약은 삭제하지 않고 `CANCELED` 상태로 변경합니다. 이미 취소된 예약을 다시 요청해도 현재 상태를 반환합니다.
 
 <br>
 
