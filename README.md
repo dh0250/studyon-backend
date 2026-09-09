@@ -435,6 +435,7 @@ AND existing.status = 'CONFIRMED'
 - 통합 테스트: MockMvc 기반으로 예약·스터디룸 API의 요청과 응답을 검증합니다.
 - 동시성 테스트: 비관적 락에서 같은 시간대 요청 중 성공 1건, 충돌 N-1건을 검증합니다.
 - 부하 테스트: k6로 100 VU 동시 예약 시나리오를 3회 실행해 결과를 비교했습니다.
+- 배포 환경 검증: AWS EC2·Nginx·RDS 경로에서 비관적 락으로 100 VU를 실행해 성공 1건, 충돌 99건, 예상 밖 오류 0건을 확인했습니다.
 
 자세한 결과는 [동시성 테스트 문서](docs/performance/reservation-concurrency.md), [락 방식 비교 문서](docs/performance/reservation-lock-comparison.md)에서 확인할 수 있습니다.
 
