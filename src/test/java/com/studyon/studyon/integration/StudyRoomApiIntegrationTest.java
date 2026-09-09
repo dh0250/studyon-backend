@@ -32,8 +32,9 @@ class StudyRoomApiIntegrationTest {
     void getsStudyRooms() throws Exception {
         mockMvc.perform(get("/api/v1/study-rooms"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$").isNotEmpty());
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data").isNotEmpty());
     }
 
     @Test
@@ -44,9 +45,10 @@ class StudyRoomApiIntegrationTest {
         mockMvc.perform(get("/api/v1/study-rooms/{studyRoomId}/availability", studyRoom.getId())
                         .param("date", LocalDate.now().plusDays(1).toString()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.studyRoomId").value(studyRoom.getId()))
-                .andExpect(jsonPath("$.slots").isArray())
-                .andExpect(jsonPath("$.slots").isNotEmpty());
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.studyRoomId").value(studyRoom.getId()))
+                .andExpect(jsonPath("$.data.slots").isArray())
+                .andExpect(jsonPath("$.data.slots").isNotEmpty());
     }
 
     @Test
@@ -55,6 +57,8 @@ class StudyRoomApiIntegrationTest {
         mockMvc.perform(get("/api/v1/study-rooms/{studyRoomId}/availability", Long.MAX_VALUE)
                         .param("date", LocalDate.now().plusDays(1).toString()))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.detail").value("스터디룸을 찾을 수 없습니다."));
+                .andExpect(jsonPath("$.code").value("STUDY_ROOM_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("스터디룸을 찾을 수 없습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 }
