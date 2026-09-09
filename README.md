@@ -26,7 +26,7 @@
 </td>
 <td valign="top" width="50%">
 
-**Infra / DevOps (배포 예정)**
+**Infra / DevOps**
 
 <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white"/>
 <img src="https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white"/>
@@ -42,6 +42,14 @@
 </td>
 </tr>
 </table>
+
+<br>
+
+## 🔗 배포 링크
+
+| 구분 | 주소 |
+|---|---|
+| StudyOn | [studyon-frontend.vercel.app](https://studyon-frontend.vercel.app) |
 
 <br>
 
@@ -65,7 +73,7 @@
 - 이미 예약된 시간대는 예약 불가
 - 예약 수정 미지원 → 변경 시 취소 후 재예약
 - 이용 목적은 50자 이내
-- 예약 취소는 삭제가 아닌 상태값 `CANCELED`로 변경
+- 예약 취소는 시작 1시간 전까지 가능하며, 삭제 대신 상태값을 `CANCELED`로 변경
 
 <br>
 
@@ -85,17 +93,23 @@ flowchart LR
 
 <br>
 
-## 🏗️ 배포 목표 아키텍처
+## 🏗️ 배포 아키텍처
 
 ```mermaid
 flowchart LR
     U["사용자 브라우저"] -->|HTTPS| V["Vercel<br>React (Vite)"]
     V -->|REST API HTTPS| N["Nginx<br>AWS EC2"]
     N --> B["Docker<br>Spring Boot"]
-    B -->|JDBC TLS| R["AWS RDS<br>PostgreSQL"]
-    G["GitHub"] -->|main push 자동 배포| V
-    G -->|빌드·배포| B
+    B -->|JDBC| R["Private AWS RDS<br>PostgreSQL"]
+    G["GitHub"] -->|main push| V
+    G -->|main push| A["GitHub Actions<br>EC2 self-hosted runner"]
+    A -->|빌드·재배포| B
 ```
+
+- Nginx가 외부 HTTPS 요청을 EC2 내부의 Spring Boot 컨테이너(`127.0.0.1:8080`)로 전달합니다.
+- RDS는 퍼블릭 접근을 허용하지 않고, EC2 보안 그룹에서만 PostgreSQL 포트 접근을 허용합니다.
+- `main`에 push하면 Vercel은 프론트를, GitHub Actions self-hosted runner는 백엔드 Docker 컨테이너를 자동 배포합니다.
+- DB 접속 정보는 Git에 포함하지 않고, EC2의 별도 `.env` 파일로 관리합니다.
 
 <br>
 
@@ -222,10 +236,13 @@ AND existing.status = 'CONFIRMED'
 | GET | `/api/v1/reservations?guestEmail={email}&guestPhone={phone}` | 이메일·전화번호로 예약 목록 조회 |
 | PATCH | `/api/v1/reservations/{reservationId}/cancel` | 예약자 정보 확인 후 예약 취소 |
 
+![img.png](img.png)
+
 ### 공통 규칙
 
-- 모든 성공 응답은 DTO 또는 DTO 목록을 바로 반환합니다.
-- 오류 응답은 Spring의 `ProblemDetail` 형식이며, 주요 메시지는 `detail` 필드에 반환됩니다.
+- 모든 응답은 아래 공통 형식으로 반환합니다. HTTP 상태 코드는 응답 헤더에서 확인합니다.
+- 성공 응답의 `code`는 항상 `SUCCESS`이며, 실제 DTO 또는 DTO 목록은 `data`에 담깁니다.
+- 오류 응답의 `data`는 `null`이며, `code`로 오류 종류를 구분합니다.
 - 비회원 예약 조회는 이메일·전화번호를 쿼리 파라미터로 전달합니다. 이메일은 앞뒤 공백을 제거하고 소문자로, 전화번호는 숫자만 남겨 조회합니다.
 - 예약 시간은 `YYYY-MM-DDTHH:mm:ss`, 날짜는 `YYYY-MM-DD` 형식입니다.
 
@@ -233,17 +250,17 @@ AND existing.status = 'CONFIRMED'
 
 ```json
 {
-  "type": "about:blank",
-  "status": 409,
-  "detail": "이미 예약된 시간대입니다. 다른 시간을 선택해주세요."
+  "code": "RESERVATION_CONFLICT",
+  "message": "이미 예약된 시간대입니다. 다른 시간을 선택해주세요.",
+  "data": null
 }
 ```
 
-| HTTP 상태 | 사용 시점 |
-|---|---|
-| 400 Bad Request | DTO 검증, 날짜·운영시간·이용시간 정책 위반 또는 예약자 정보 불일치 |
-| 404 Not Found | 스터디룸 또는 예약을 찾을 수 없음 |
-| 409 Conflict | 예약 시간 중복 |
+| HTTP 상태 | 응답 코드 | 사용 시점 |
+|---|---|---|
+| 400 Bad Request | `VALIDATION_ERROR`, `INVALID_DATE`, `INVALID_RESERVATION`, `RESERVATION_VERIFICATION_FAILED`, `RESERVATION_CANCELLATION_NOT_ALLOWED` | DTO 검증, 날짜·운영시간·이용시간 정책 위반 또는 예약자 정보 불일치 |
+| 404 Not Found | `STUDY_ROOM_NOT_FOUND`, `RESERVATION_NOT_FOUND` | 스터디룸 또는 예약을 찾을 수 없음 |
+| 409 Conflict | `RESERVATION_CONFLICT` | 예약 시간 중복 |
 
 ### 상세 명세
 
@@ -254,17 +271,21 @@ AND existing.status = 'CONFIRMED'
 운영 중인 `active=true` 스터디룸 목록을 반환합니다. 요청 body와 query parameter는 없습니다.
 
 ```json
-[
-  {
-    "id": 1,
-    "name": "4인 1호실",
-    "roomType": "ROOM_4",
-    "minCapacity": 1,
-    "maxCapacity": 4,
-    "openTime": "06:00:00",
-    "closeTime": "23:00:00"
-  }
-]
+{
+  "code": "SUCCESS",
+  "message": "요청에 성공했습니다.",
+  "data": [
+    {
+      "id": 1,
+      "name": "4인 1호실",
+      "roomType": "ROOM_4",
+      "minCapacity": 1,
+      "maxCapacity": 4,
+      "openTime": "06:00:00",
+      "closeTime": "23:00:00"
+    }
+  ]
+}
 ```
 
 #### 예약 가능 시간 조회
@@ -280,12 +301,16 @@ AND existing.status = 'CONFIRMED'
 
 ```json
 {
-  "studyRoomId": 1,
-  "date": "2026-09-08",
-  "slots": [
-    { "startTime": "06:00", "endTime": "07:00", "available": true },
-    { "startTime": "07:00", "endTime": "08:00", "available": false }
-  ]
+  "code": "SUCCESS",
+  "message": "요청에 성공했습니다.",
+  "data": {
+    "studyRoomId": 1,
+    "date": "2026-09-08",
+    "slots": [
+      { "startTime": "06:00", "endTime": "07:00", "available": true },
+      { "startTime": "07:00", "endTime": "08:00", "available": false }
+    ]
+  }
 }
 ```
 
@@ -322,16 +347,20 @@ AND existing.status = 'CONFIRMED'
 
 ```json
 {
-  "reservationId": 101,
-  "studyRoomId": 1,
-  "studyRoomName": "4인 1호실",
-  "guestName": "홍길동",
-  "guestEmail": "guest@example.com",
-  "guestPhone": "01012345678",
-  "startAt": "2026-09-08T10:00:00",
-  "endAt": "2026-09-08T12:00:00",
-  "purpose": "팀 프로젝트 회의",
-  "status": "CONFIRMED"
+  "code": "SUCCESS",
+  "message": "요청에 성공했습니다.",
+  "data": {
+    "reservationId": 101,
+    "studyRoomId": 1,
+    "studyRoomName": "4인 1호실",
+    "guestName": "홍길동",
+    "guestEmail": "guest@example.com",
+    "guestPhone": "01012345678",
+    "startAt": "2026-09-08T10:00:00",
+    "endAt": "2026-09-08T12:00:00",
+    "purpose": "팀 프로젝트 회의",
+    "status": "CONFIRMED"
+  }
 }
 ```
 
@@ -347,19 +376,23 @@ AND existing.status = 'CONFIRMED'
 이메일과 전화번호가 모두 일치하는 예약을 생성 시각 내림차순으로 반환하며, 일치하는 예약이 없으면 빈 배열을 반환합니다.
 
 ```json
-[
-  {
-    "reservationId": 101,
-    "studyRoomId": 1,
-    "studyRoomName": "4인 1호실",
-    "startAt": "2026-09-08T10:00:00",
-    "endAt": "2026-09-08T12:00:00",
-    "purpose": "팀 프로젝트 회의",
-    "status": "CONFIRMED",
-    "canceledAt": null,
-    "createdAt": "2026-09-07T14:00:00"
-  }
-]
+{
+  "code": "SUCCESS",
+  "message": "요청에 성공했습니다.",
+  "data": [
+    {
+      "reservationId": 101,
+      "studyRoomId": 1,
+      "studyRoomName": "4인 1호실",
+      "startAt": "2026-09-08T10:00:00",
+      "endAt": "2026-09-08T12:00:00",
+      "purpose": "팀 프로젝트 회의",
+      "status": "CONFIRMED",
+      "canceledAt": null,
+      "createdAt": "2026-09-07T14:00:00"
+    }
+  ]
+}
 ```
 
 #### 예약 취소
@@ -381,13 +414,29 @@ AND existing.status = 'CONFIRMED'
 
 ```json
 {
-  "reservationId": 101,
-  "status": "CANCELED",
-  "canceledAt": "2026-09-07T14:30:00"
+  "code": "SUCCESS",
+  "message": "요청에 성공했습니다.",
+  "data": {
+    "reservationId": 101,
+    "status": "CANCELED",
+    "canceledAt": "2026-09-07T14:30:00"
+  }
 }
 ```
 
 예약은 삭제하지 않고 `CANCELED` 상태로 변경합니다. 이미 취소된 예약을 다시 요청해도 현재 상태를 반환합니다.
+예약 시작 1시간 이내에는 취소할 수 없습니다.
+
+<br>
+
+## 🧪 테스트
+
+- 단위 테스트: 예약 생성·조회·취소 정책과 스터디룸 조회를 검증합니다.
+- 통합 테스트: MockMvc 기반으로 예약·스터디룸 API의 요청과 응답을 검증합니다.
+- 동시성 테스트: 비관적 락에서 같은 시간대 요청 중 성공 1건, 충돌 N-1건을 검증합니다.
+- 부하 테스트: k6로 100 VU 동시 예약 시나리오를 3회 실행해 결과를 비교했습니다.
+
+자세한 결과는 [동시성 테스트 문서](docs/performance/reservation-concurrency.md), [락 방식 비교 문서](docs/performance/reservation-lock-comparison.md)에서 확인할 수 있습니다.
 
 <br>
 
@@ -395,8 +444,15 @@ AND existing.status = 'CONFIRMED'
 
 ```
 studyon-backend
+├── .github
+│   └── workflows
+│       └── deploy.yml
+├── .dockerignore
 ├── db
-│   └── schema.sql
+│   ├── schema.sql
+│   └── study_rooms_data.sql
+├── docs
+│   └── performance
 ├── src
 │   ├── main
 │   │   ├── java/com/studyon/studyon
@@ -410,7 +466,9 @@ studyon-backend
 │   │       └── application.yml
 │   └── test
 │       └── java/com/studyon/studyon
-├── .env
+├── tests
+│   └── k6
+├── Dockerfile
 ├── .gitignore
 ├── build.gradle
 └── settings.gradle

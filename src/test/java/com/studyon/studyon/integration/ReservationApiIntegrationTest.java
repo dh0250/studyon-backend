@@ -64,9 +64,10 @@ class ReservationApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(createRequest(studyRoom))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.studyRoomId").value(studyRoom.getId()))
-                .andExpect(jsonPath("$.guestEmail").value("api-integration-test@example.com"))
-                .andExpect(jsonPath("$.status").value("CONFIRMED"));
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.studyRoomId").value(studyRoom.getId()))
+                .andExpect(jsonPath("$.data.guestEmail").value("api-integration-test@example.com"))
+                .andExpect(jsonPath("$.data.status").value("CONFIRMED"));
     }
 
     @Test
@@ -81,7 +82,19 @@ class ReservationApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.detail").value("이미 예약된 시간대입니다. 다른 시간을 선택해주세요."));
+                .andExpect(jsonPath("$.code").value("RESERVATION_CONFLICT"))
+                .andExpect(jsonPath("$.message").value("이미 예약된 시간대입니다. 다른 시간을 선택해주세요."));
+    }
+
+    @Test
+    @DisplayName("예약 생성 API의 DTO 검증 오류는 공통 오류 응답을 반환한다")
+    void returnsCommonResponseForValidationError() throws Exception {
+        mockMvc.perform(post("/api/v1/reservations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test
@@ -95,8 +108,9 @@ class ReservationApiIntegrationTest {
                         .param("guestEmail", "API-INTEGRATION-TEST@EXAMPLE.COM")
                         .param("guestPhone", "010-1234-5678"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].studyRoomId").value(studyRoom.getId()))
-                .andExpect(jsonPath("$[0].status").value("CONFIRMED"));
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data[0].studyRoomId").value(studyRoom.getId()))
+                .andExpect(jsonPath("$.data[0].status").value("CONFIRMED"));
     }
 
     @Test
@@ -116,8 +130,9 @@ class ReservationApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.reservationId").value(reservationId))
-                .andExpect(jsonPath("$.status").value("CANCELED"));
+                .andExpect(jsonPath("$.code").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.reservationId").value(reservationId))
+                .andExpect(jsonPath("$.data.status").value("CANCELED"));
     }
 
     @Test
@@ -146,7 +161,8 @@ class ReservationApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.detail")
+                .andExpect(jsonPath("$.code").value("RESERVATION_CANCELLATION_NOT_ALLOWED"))
+                .andExpect(jsonPath("$.message")
                         .value("예약 시작 1시간 전까지만 취소할 수 있습니다."));
     }
 
