@@ -3,6 +3,8 @@
 스터디룸 예약 서비스의 백엔드 서버입니다. 비회원이 이름·이메일·전화번호를 입력해 빠르게 예약하고, 동시성 제어를 통해 중복 예약 없이 안전하게 처리하는 것을 목표로 합니다.
 
 <br>
+<img width="1677" height="957" alt="image" src="https://github.com/user-attachments/assets/decae26a-6a95-4c03-b19e-49fd10d2e299" />
+
 
 ## 🖥️ 기술 스택
 
